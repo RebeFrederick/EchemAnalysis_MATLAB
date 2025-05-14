@@ -1,0 +1,65 @@
+
+GAMRY FILES
+https://www.gamry.com/Framework%20Help/HTML5%20-%20Tripane%20-%20Audience%20A/framework_help.htm
+Last Updated: 2025-MAY-14
+
+
+Abbreviations:
+
+Pt  -  Data point number, starting with point 0 (not point 1)
+T  -  Time since the start of the experiment
+Vf  -  Measured cell voltage
+Im  -  Measured cell current
+Vu  -  Uncompensated voltage
+Sig  -  Voltage from the signal generator entering the current amplifier
+Ach  -  Voltage measured using the A/D input
+IERange  -  Which current range was used for measurement
+Over  -  A code indicating various kinds of error conditions
+
+---------------------------------------------------------------------------------
+
+EIS Data Curves:
+
+ZCURVE
+The tag identifies the data set as a ZCURVE datatype. The Framework™ exclusively uses the ZCURVE datatype. Other experiments, such as the DC Corrosion test techniques, produce other data types.
+The first line following the datatype is a set of descriptive column headings. These headings are for file readability only. The EIS software analysis GScripts do not use the column headings to identify data positions within the curve. Click on the headings below to get a description.
+
+COLUMNS
+
+Pt
+Data point number, starting with zero.
+
+Time (sec)
+Time in seconds from the start of the data curve acquisition.
+
+Freq (Hz)
+Frequency of the applied sinusoidal voltage.
+
+Zreal (ohm), Zimag (ohm), Zsig (Volt), Zmod (ohm), and Zphz (degree)
+These columns are the measured impedance. The impedance is represented in both complex form and polar notation. For a capacitor, Zimag and Zphz are negative.	
+
+Idc (Amp) and Vdc (Volt)
+These columns are the measured DC current and voltage. These quantities are measured at each frequency, because they are required in the autoranging decision.
+
+IRange
+This is the potentiostat current range used to record the data point. It is included as a troubleshooting tool. It is not required. Gamry Instruments reserves the right to drop this field from the data file in future software releases.
+
+---------------------------------------------------------------------------------
+
+OCP and CV Data Curves:
+
+Potential: Vf, Vu, Vm These columns are cell potentials. The units are volts. 
+
+Ach
+This column is the potential measured using the auxiliary A/D converter input. The unit is the volt. (V)
+
+Vf
+In controlled-current techniques Vf is a value you measure. If you select IR Compensation, the number is corrected for the IR-drop measured via current interruption. The size of the correction is reported in the Vu data column. Vu is commonly referred to as the uncompensated voltage. In controlled-potential techniques, Vf is the corrected, measured cell voltage. Any external voltage added to the cell excitation via the external input connector is included in this value. If you select IR Compensation, the actual applied voltage between current interruptions is the sum of the Vf and Vu data. In Corrosion Potential measurements, or in the Open Circuit Voltage (OCV) measurement before an experiment, Vf is the filtered, measured, open-circuit voltage. A digital filter has been applied to minimize pickup of the AC mains frequency (50 or 60 Hz). 
+
+Vu
+Vu is commonly referred to as the uncompensated voltage. It is the voltage-drop across the solution resistance between the Working Electrode and the tip of the Reference Electrode. If you select IR Compensation (current interrupt), Vu is the difference between the measured voltage with the current flowing, and the voltage during the period of the current interrupt. The actual applied voltage between current interruptions is the sum of the Vf and Vu data.
+
+Vm
+Vm, where it appears, is included only for compatibility with older versions of the Gamry Framework.
+
+---------------------------------------------------------------------------------

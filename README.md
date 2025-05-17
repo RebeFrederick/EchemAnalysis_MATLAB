@@ -7,7 +7,7 @@ Last Updated: &nbsp; 2025-MAY-14 by Rebecca Frederick
 **********************************************************************************************************
 ## FILE DESCRIPTIONS
 
-### Main File: "DTA_batch_process.m"
+### Main File: "_main_DTA_batch_process.m"
 - Reads all Gamry .dta files within a folder. 
 - Runs "DTA_read" function to create & save an organized MATLAB data structure for each .dta file. 
 - Runs "DTA_calc" function to append the structure with calculated values depending on measurement type. 
@@ -28,7 +28,7 @@ Last Updated: &nbsp; 2025-MAY-14 by Rebecca Frederick
 Open MATLAB to your default directory. <br/>
 Add the "EchemAnalysis_MATLAB" Folder and Subfolders to your MATLAB directory.
 2. Open the main data analysis file "DTA_batch_process.m"
-3. **Run DTA_batch_process.m**
+3. **Run _main_DTA_batch_process.m**
 4. At the first prompt, **select the folder that contains your .dta raw data files**.
    If your files are in subfolders, the analysis will not run on any files in
    those subfolders, it will only run on files in the main folder you selected.

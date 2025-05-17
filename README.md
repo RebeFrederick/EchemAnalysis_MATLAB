@@ -1,7 +1,7 @@
 # EchemAnalysis_MATLAB
 Code base for processing and analysis of electrochemical measurement data using MATLAB. <br/>
 For use with Gamry potentiostats and Gamry Framework software (.dta file types). <br/>
-Last Updated: &nbsp; 2025-MAY-16 by Rebecca Frederick
+Last Updated: 2025-MAY-16 by Rebecca Frederick
 
 **********************************************************************************************************
 **********************************************************************************************************

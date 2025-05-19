@@ -25,6 +25,7 @@ function [DTA_process_calcvals] = DTA_calc(DTA_read_output,testType,eis_val,cv_v
 %   [CV] xcscH -- HMRI method, total charge divided by 2 divided by GSA.
 %   [CV] Qh -- HMRI method, total charge.
 % ------------------------------------------------------------------------
+%{
 % UPDATE LOG
 % 
 % Update: Rebecca Frederick 2024-FEB-19
@@ -48,7 +49,12 @@ function [DTA_process_calcvals] = DTA_calc(DTA_read_output,testType,eis_val,cv_v
 %     as user input request, added all to function inputs.
 %   - Moved testType to DTA_batch_process, added to function inputs.
 %   - [to-do] clean up comments and remove un-used lines.
-%
+% 
+% Update 2025-05-19 by Rebecca Frederick
+%   - Fixed CSC calculation to use user-input curve# 
+%     (was using 2nd to last curve).
+%   - Fixed CSC calculation units to output mC/cm^2.
+%}
 %--------------------------------------------------------------------------
 %--------------------------------------------------------------------------
 % Define val for each different case (EIS, CV, or OCP) [Moved 2025-05-16]
@@ -61,7 +67,16 @@ function [DTA_process_calcvals] = DTA_calc(DTA_read_output,testType,eis_val,cv_v
 switch testType
 %--------------------------------------------------------------------------
 %--------------------------------------------------------------------------
-    % Output |Z| and Phase from specific frequency values in EIS data:
+    case 'OCP'
+        val = ocp_val;
+        rawocp = DTA_read_output.ocpcurve.Vf;
+        q = numel(rawocp); %how many ocp values
+        % avg. from last 10% of ocp data points in time:
+        ocpmean =  mean(cell2mat(rawocp(round((1-(val/100))*q):q))); 
+        DTA_process_calcvals = {'Avg_OCP',ocpmean};
+%--------------------------------------------------------------------------
+%--------------------------------------------------------------------------
+% Output |Z| and Phase from specific frequency values in EIS data:
     case 'EIS'
         val = eis_val;
         tmp = abs([DTA_read_output.eis.freq{:}]'-val);  %set temp values for freq.
@@ -102,114 +117,82 @@ switch testType
 %--------------------------------------------------------------------------
 %--------------------------------------------------------------------------
     % Output CSCc, CSCa, CSCh for CV data:
-%*************************************************************************
-    % Rebecca Note 2023-FEB-19:
-    % CV case has code to pass 2nd to last curve data to variables V and I.
-    % But CSC calculation currently does not use V and I.
-    % It uses hard-coded selection of curve #3, see code lines 86 (xV=) & 87 (xIm=).
-    % Need to update to use j value in calculation or user-input curve
-    % number; with error message if curve number doesn't exist.
-%*************************************************************************
     case 'CV'  %% values when copied from analyst are %.4f precision, %.6f in matlab. rounding error?
         val = cv_val;
         numCurves = numel(DTA_read_output.cvcurve); %read number of curves in DTA file
-        SA = val{1};  % GEOMETRIC SURFACE AREA value in µm^2
+        SA = val{1}; %GEOMETRIC SURFACE AREA value in µm^2 from user input
+        SA = SA*(1e-8); % Convert GSA from µm^2 to cm^2
         R = str2num(DTA_read_output.settings.stepsize);  % R = Voltage Step
         SR = str2num(DTA_read_output.settings.scanrate);  % SR = CV Scan Rate
-        
         V = []; I = [];  %setup empty arrays
         if numCurves<=2  %if only 1 or 2 curves, bad cv likely. skip
             DTA_process_calcvals = {'error in CV curves'};
         else
         % Find overall slope/tilt of CV curves
-            curveselect = numCurves-1; % uses 2nd to last curve/cycle
-            %Copy second to last curve, minus first and last
+            curveselect = val{2}; %Curve number from user input
+            %curveselect = numCurves-1; % uses 2nd to last curve/cycle
+            %Copy user selected curve raw data:
             V(:,1) = cell2mat(DTA_read_output.cvcurve(curveselect).Vf);
             I(:,1) = cell2mat(DTA_read_output.cvcurve(curveselect).Im);
             p = polyfit(V,I,1);
             cvslope = p(1);
-
-        % Use Selected CV Cycle Number for CSC Calculation
-            % Alternative: 
-            %   curveselect = val{2}; % uses user-selected curve
+        % Use Selected CV Cycle Number for CSC Calculation:
             xV = cell2mat(DTA_read_output.cvcurve(curveselect).Vf); 
             xIm = cell2mat(DTA_read_output.cvcurve(curveselect).Im);
             %add a 0 to the end,brings values in line with integration Excel 
             xV(end+1)=0;
             xIm(end+1)=0;
-        
-%{ 
-        % [to-do] ...
-        % See if user requested CSC calculation over voltage range smaller
-        % than full CV scan voltage range.        
-        if val{4}
-           lst = val{5};
-           mst = val{6};
-           Vrange = find(xV<=mst & xV>=lst);
-           % cut the size of the curves over which CSC will be calculated
-           xV  = xV(Vrange); 
-           xIm  = xIm(Vrange);         
-        end
-%}
-
-    % Charge Storage Capacity Calculation:
-        % Charge(i)=
-        % ((current(i)+current(i-1))/2)*(SRate/Resolution)*1000*currentcorrection
-        % TotalCharge(i) = running total sum of charge
-        % ChargeDensity(i) = totalcharge(i)/ area
-        % Charge Density corrected with abs
-        % cathodal integral values =
-        % integer(((1-signofcharge(i)))/2)*corrected charge density(i)
-        % CsCc= sum cathodal
-        % charge C = cscc * area *1e6
-        % anodal integrals = ((1+sign(charge(i))/2)*correctedchargedensity
+        % Charge Storage Capacity Calculation:
+          %{
+          % Charge(i)=
+          % ((current(i)+current(i-1))/2)*(Resolution(V)/SRate(V/s))*1000*currentcorrection
+          % TotalCharge(i) = running total sum of charge
+          % ChargeDensity(i) = totalcharge(i)/ area
+          % Charge Density corrected with abs
+          % cathodal integral values =
+          % integer(((1-signofcharge(i)))/2)*corrected charge density(i)
+          % CSCc= sum cathodal
+          % charge C = cscc * area *1e6
+          %}
+          % anodal integrals = ((1+sign(charge(i))/2)*correctedchargedensity
             for x=2:length(xV)  % G,H,I,J are just labels for stage increment
-                xG(x) = +((xIm(x-1)+xIm(x))/2)*(R/SR)*1000*1;
-                xH(x) = +sum(xG(1:x));
-                xI(x) = xH(x)/SA;
-                xJ(x) = abs(xG(x))/SA;
+                xG(x) = +((xIm(x-1)+xIm(x))/2)*(R/SR)*1000*1; % q (mC)
+                xH(x) = +sum(xG(1:x)); % sum of current an all previous q
+                xI(x) = xH(x)/SA; % q density, from q sum
+                xJ(x) = abs(xG(x))/SA; % q density, current q only
             end
             %integrate cathodic(neg) and anodic(pos) regions of curve to get charge
             for x=2:length(xV)
-                xintcat(x) = round(((1-sign(xG(x))))/2)*xJ(x);  % cathodic Q
-                xintan(x) = +((1+sign(xG(x)))/2)*xJ(x);         % anodic Q
+                xintcat(x) = round(((1-sign(xG(x))))/2)*xJ(x); % cathodic Q
+                xintan(x) = +((1+sign(xG(x)))/2)*xJ(x);        % anodic Q
             end
             % Method 1: Time Integral
             % Default method to use in all cases
             if strcmp(val{3}, 'Time')       
-                % EIC METHOD, time
-                xcscC= sum(xintcat);
-                xcscA= sum(xintan);
-                Qc = xcscC*SA*1e6;
-                Qa = xcscA*SA*1e6;
-                % HMRI METHOD, time
-               xcscH= sum(xJ(1:end))/2;
-               Qh = xcscH*SA*1e6; 
+               % EIC METHOD, time
+               xcscC = sum(xintcat);     % mC per cm^2
+               xcscA = sum(xintan);      % mC per cm^2
+               Qc = xcscC*SA*1e6;        % nC
+               Qa = xcscA*SA*1e6;        % nC
+               % HMRI METHOD, time
+               xcscH = sum(xJ(1:end))/2; % mC per cm^2
+               Qh = xcscH*SA*1e6;        % nC
             % Method 2: IV Curve Area Integral
             % Special use case: only sum charge between/inside oxidation and reduction curves
             elseif strcmp(val{3}, 'Area')   
                 % EIC METHOD, area
-                xcscC= sum(xintcat((1+length(xV)/2):length(xV)))-sum(xintcat(1:(length(xV)/2)));
-                xcscA= sum(xintan(1:(length(xV)/2)))-sum(xintan((1+length(xV)/2):length(xV)));
-                Qc = xcscC*SA*1e6;
-                Qa = xcscA*SA*1e6;
+                xcscC = sum(xintcat((1+length(xV)/2):length(xV)))-sum(xintcat(1:(length(xV)/2))); % mC/cm^2
+                xcscA = sum(xintan(1:(length(xV)/2)))-sum(xintan((1+length(xV)/2):length(xV))); % mC/cm^2
+                Qc = xcscC*SA*1e6;      % nC
+                Qa = xcscA*SA*1e6;      % nC
                 % HMRI METHOD, area
-                xcscH= (xcxcC+xcscA)/2;
-                Qh = xcscH*SA*1e6;
+                xcscH= (xcxcC+xcscA)/2; % mC/cm^2
+                Qh = xcscH*SA*1e6;      % nC
             end
             % send to output
             DTA_process_calcvals = {'CSCc',xcscC;'CSCa',xcscA;'CSCh',xcscH;'Qc',Qc;'Qa',Qa;'Qh',Qh;'CVslope',cvslope};
         end
     
-%--------------------------------------------------------------------------
-%--------------------------------------------------------------------------
-    case 'OCP'
-        val = ocp_val;
-        rawocp = DTA_read_output.ocpcurve.Vf;
-        q = numel(rawocp); %how many ocp values
-        % avg. from last 10% of ocp data points in time:
-        ocpmean =  mean(cell2mat(rawocp(round((1-(val/100))*q):q))); 
-        DTA_process_calcvals = {'Avg_OCP',ocpmean};
 %--------------------------------------------------------------------------
 %--------------------------------------------------------------------------
     otherwise

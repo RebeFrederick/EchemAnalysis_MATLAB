@@ -36,6 +36,7 @@ function DTA_read_output = DTA_read(filename,savelocation)
 %   filename = sprintf(%s%s, filename, 20230210_Au_CV_H.DTA);
 %   savelocation = mkdir filename Deku_Echem_Analysis_Outputs;
 % ------------------------------------------------------------------------
+%{
 % UPDATE LOG
 %
 % Update: Rebecca Frederick 2024-FEB-19
@@ -53,6 +54,7 @@ function DTA_read_output = DTA_read(filename,savelocation)
 % Update 2025-May-16 Rebecca Frederick
 %  - cleaned up comments, created separate Update Log comment section.
 % 
+%}
 % ------------------------------------------------------------------------
 %                         READ .DTA FILES
 % ------------------------------------------------------------------------

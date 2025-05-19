@@ -14,17 +14,21 @@ function DTA_summaries(savelocation)
 %clear all
 %clc
 % ------------------------------------------------------------------------
+%{
 % UPDATE LOG
 % 
 % Update 2025-05-16 by Rebecca Frederick
-% - Added TestID, WaferID, & Animal ID for file naming convention:
-%   YYYYMMDD_TestID_WaferID_DeviceID_ElectrodeID_AnimalID/Electrolyte_OtherInfo.DTA
-%   e.g. 20250130_A_W008_F_E04_PBSair_CV50.DTA
-% - Removed commented out old/trial lines of code.
-% - Moved data labels from within switch cases to start of for loop.
-% - Changed file from .m script to function.
-% - Added creation of separate save folder for summaries within savelocation.
-%
+%   - Added TestID, WaferID, & Animal ID for file naming convention:
+%     YYYYMMDD_TestID_WaferID_DeviceID_ElectrodeID_AnimalID/Electrolyte_OtherInfo.DTA
+%     e.g. 20250130_A_W008_F_E04_PBSair_CV50.DTA
+%   - Removed commented out old/trial lines of code.
+%   - Moved data labels from within switch cases to start of for loop.
+%   - Changed file from .m script to function.
+%   - Added creation of separate save folder for summaries within savelocation.
+% 
+% Update 2025-05-19 Rebecca Frederick
+%   - Added Qc, Qa, Qh, & CV slope to summaries outupt for CV data.
+%}
 % ------------------------------------------------------------------------
 %                       IMPORT ALL DATA FILE NAMES
 % ------------------------------------------------------------------------
@@ -36,17 +40,21 @@ DeviceID = [];
 ElectrodeID = [];
 AnimalID = [];
 
+OCP = [];  % (V) ???
 Frequency = [];  % (Hz)
 ImpedanceMag = [];  % (Ohm)
 ScanRate = [];  % (mV/s)
 CSCc = [];  % (mC/cm^2)
 CSCa = [];  % (mC/cm^2)
 CSCh = [];  % (mC/cm^2)
-OCP = [];  % (V) ???
+Qc = []; % nC
+Qa = []; % nC
+Qh = []; % nC
+CVslope = []; % (A/V)
 
-summary_EIS = table(Date,TestID,WaferID,DeviceID,ElectrodeID,AnimalID,Frequency,ImpedanceMag);
-summary_CV = table(Date,TestID,WaferID,DeviceID,ElectrodeID,AnimalID,ScanRate,CSCc,CSCa,CSCh);
 summary_OCP = table(Date,TestID,WaferID,DeviceID,ElectrodeID,AnimalID,OCP);
+summary_EIS = table(Date,TestID,WaferID,DeviceID,ElectrodeID,AnimalID,Frequency,ImpedanceMag);
+summary_CV = table(Date,TestID,WaferID,DeviceID,ElectrodeID,AnimalID,ScanRate,CSCc,CSCa,CSCh,Qc,Qa,Qh,CVslope);
 
 % ------------------------------------------------------------------------
 % List All .mat Files Within Selected Folder:
@@ -78,10 +86,15 @@ for k = 1:length(nameStructs)
     wafer = info_temp{4};
     device = info_temp{5};
     electrode = info_temp{6};
-    electrode = electrode(1:end-4);
     animal = info_temp{7};
     %
     switch testType
+        case 'OCP'
+            %
+            temp_ocp = DTA_read_output.Calculated{2};
+            %
+            summary_OCP = [summary_OCP;{date,test,wafer,device,electrode,animal,temp_ocp}];
+            clear DTA_read_output
         case 'EIS'
             %
             if size(DTA_read_output.Calculated)>1
@@ -100,17 +113,15 @@ for k = 1:length(nameStructs)
                 temp_CSCc = DTA_read_output.Calculated{1,2};
                 temp_CSCa = DTA_read_output.Calculated{2,2};
                 temp_CSCh = DTA_read_output.Calculated{3,2};
+                temp_Qc = DTA_read_output.Calculated{4,2};
+                temp_Qa = DTA_read_output.Calculated{5,2};
+                temp_Qh = DTA_read_output.Calculated{6,2};
+                temp_slope = DTA_read_output.Calculated{7,2};
                 %
-                summary_CV = [summary_CV;{date,test,wafer,device,electrode,animal,temp_scanrate,temp_CSCc,temp_CSCa,temp_CSCh}];
+                summary_CV = [summary_CV;{date,test,wafer,device,electrode,animal,temp_scanrate,temp_CSCc,temp_CSCa,temp_CSCh,temp_Qc,temp_Qa,temp_Qh,temp_slope}];
             else
-                summary_CV = [summary_CV;{date,test,wafer,device,electrode,animal,temp_scanrate,0,0,0}];
+                summary_CV = [summary_CV;{date,test,wafer,device,electrode,animal,temp_scanrate,0,0,0,0,0,0,0}];
             end
-            clear DTA_read_output
-        case 'OCP'
-            %
-            temp_ocp = DTA_read_output.Calculated{1};
-            %
-            summary_OCP = [summary_OCP;{date,test,wafer,device,electrode,animal,temp_ocp}];
             clear DTA_read_output
         otherwise
             % if no test type identified, error, skip

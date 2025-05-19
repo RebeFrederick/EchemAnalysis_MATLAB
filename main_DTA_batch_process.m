@@ -16,6 +16,7 @@
 clear all
 clc
 % ------------------------------------------------------------------------
+%{
 % UPDATE LOG
 % 
 % Update 2025-05-16 by Rebecca Frederick
@@ -25,6 +26,7 @@ clc
 %     freq. for |Z| values, electrode GSA, CV curve# for CSC, percent of 
 %     data to average for OCP values.
 % 
+%}
 % ------------------------------------------------------------------------
 %                       IMPORT ALL DATA FILE NAMES
 % ------------------------------------------------------------------------
@@ -83,6 +85,10 @@ end
 %                 ADD SUMMARIES FOR |Z|, CSC, & OCP
 % ------------------------------------------------------------------------
 % Run function DTA_summaries on all .mat sturctures in savelocation:
+% !!! NOTE !!!
+% File Names Must Match Convention:
+% YYYYMMDD_TestID_WaferID_DeviceID_ElectrodeID_AnimalID/Electrolyte_OtherInfo.DTA
+% e.g. 20250130_A_W008_F_E04_PBSair_CV50.DTA
 DTA_summaries(savelocation);
 %
 % ------------------------------------------------------------------------

@@ -7,7 +7,7 @@ Last Updated: 2025-MAY-16 by Rebecca Frederick
 **********************************************************************************************************
 ## FILE DESCRIPTIONS
 
-### Main File: "_main_DTA_batch_process.m"
+### Main File: "main_DTA_batch_process.m"
 - Reads all Gamry .dta files within a folder. 
 - Runs "DTA_read" function to create & save an organized MATLAB data structure for each .dta file. 
 - Runs "DTA_calc" function to append the structure with calculated values depending on measurement type. 

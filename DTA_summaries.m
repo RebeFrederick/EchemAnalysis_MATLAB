@@ -1,4 +1,4 @@
-function DTA_summaries(savelocation)
+function DTA_summaries(savelocation,summarieslocation)
 %--------------------------------------------------------------------------
 % Function Description:
 % Created By:     Rebecca Frederick
@@ -10,6 +10,9 @@ function DTA_summaries(savelocation)
 % Summarizes CSC and |Z| and OCP values accross multiple files.
 % Use to group by electrode, device, animal, electrolyte, etc.
 % 
+% [!!!] File Names Must Match Convention:
+% YYYYMMDD_WaferID_DeviceID_AnimalID-or-Electrolyte_ElectrodeID_TestID_OtherInfo.DTA
+% e.g. 20250130_W008_F_PBSair_E04_A_CV50.DTA
 % ------------------------------------------------------------------------
 %clear all
 %clc
@@ -28,17 +31,21 @@ function DTA_summaries(savelocation)
 % 
 % Update 2025-05-19 Rebecca Frederick
 %   - Added Qc, Qa, Qh, & CV slope to summaries outupt for CV data.
+% 
+% Update 2025-05-27 Rebecca Frederick
+%  - Changed file name convention to better accomodate multiplexing.
 %}
 % ------------------------------------------------------------------------
 %                       IMPORT ALL DATA FILE NAMES
 % ------------------------------------------------------------------------
 % Create Empty Data Tables to Add Data To
 Date = [];
-TestID = [];
+AnimalID = [];
 WaferID = [];
 DeviceID = [];
 ElectrodeID = [];
-AnimalID = [];
+TestID = [];
+%Other = [];
 
 OCP = [];  % (V) ???
 Frequency = [];  % (Hz)
@@ -52,17 +59,21 @@ Qa = []; % nC
 Qh = []; % nC
 CVslope = []; % (A/V)
 
-summary_OCP = table(Date,TestID,WaferID,DeviceID,ElectrodeID,AnimalID,OCP);
-summary_EIS = table(Date,TestID,WaferID,DeviceID,ElectrodeID,AnimalID,Frequency,ImpedanceMag);
-summary_CV = table(Date,TestID,WaferID,DeviceID,ElectrodeID,AnimalID,ScanRate,CSCc,CSCa,CSCh,Qc,Qa,Qh,CVslope);
-
+summary_OCP = table(Date,AnimalID,WaferID,DeviceID,ElectrodeID,TestID,OCP);
+summary_EIS = table(Date,AnimalID,WaferID,DeviceID,ElectrodeID,TestID,Frequency,ImpedanceMag);
+summary_CV = table(Date,AnimalID,WaferID,DeviceID,ElectrodeID,TestID,ScanRate,CSCc,CSCa,CSCh,Qc,Qa,Qh,CVslope);
+%{
+summary_OCP = table(Date,AnimalID,WaferID,DeviceID,ElectrodeID,TestID,Other,OCP);
+summary_EIS = table(Date,AnimalID,WaferID,DeviceID,ElectrodeID,TestID,Other,Frequency,ImpedanceMag);
+summary_CV = table(Date,AnimalID,WaferID,DeviceID,ElectrodeID,TestID,Other,ScanRate,CSCc,CSCa,CSCh,Qc,Qa,Qh,CVslope);
+%}
 % ------------------------------------------------------------------------
 % List All .mat Files Within Selected Folder:
 nameStructs = dir(sprintf('%s%s',savelocation,'\*.mat')); % all structures in save location
 % ------------------------------------------------------------------------
 % Create new folder for summary files if it doesn't already exist:
-newSaveFolder = 'Summaries_Outputs';
-summarieslocation = fullfile(savelocation,newSaveFolder);
+%newSaveFolder = 'Summaries_Outputs';
+%summarieslocation = fullfile(savelocation,newSaveFolder);
 if exist('summarieslocation')~=7
     savedir = cd(savelocation);
     mkdir(newSaveFolder)
@@ -80,20 +91,24 @@ for k = 1:length(nameStructs)
     current_file = sprintf('%s%s%s',savelocation,'\',testInfo);
     load(current_file);
     testType = DTA_read_output.testType;
-    info_temp = split(testInfo,'_');
-    date = info_temp{2};
-    test = info_temp{3};
-    wafer = info_temp{4};
-    device = info_temp{5};
-    electrode = info_temp{6};
-    animal = info_temp{7};
+  % EDIT FILE NAME CONVENTION BELOW !!!
+    info_temp = split(testInfo,'_');  % labels separated by underscores
+    date = info_temp{2};  % format = YYYYMMDD
+    wafer = info_temp{3};  % format = project-specific
+    device = info_temp{4};  % format = project-specific
+    animal = info_temp{5};  % format = project-specific
+    electrode = info_temp{6};  % format = E00 or E000
+    test = info_temp{7};  % format = A (i.e. A,B,...,Z,ZA,ZB,...)
+    %other = info_temp{e:end};  % format = project-specific
+  % END FILE NAME CONVENTION DEFINITIONS
     %
     switch testType
         case 'OCP'
             %
             temp_ocp = DTA_read_output.Calculated{2};
             %
-            summary_OCP = [summary_OCP;{date,test,wafer,device,electrode,animal,temp_ocp}];
+            summary_OCP = [summary_OCP;{date,animal,wafer,device,electrode,test,temp_ocp}];
+            %summary_OCP = [summary_OCP;{date,animal,wafer,device,electrode,test,temp_ocp}]; %adds other info from file name
             clear DTA_read_output
         case 'EIS'
             %
@@ -101,9 +116,11 @@ for k = 1:length(nameStructs)
                 temp_freq = DTA_read_output.Calculated{1,2};
                 temp_z = DTA_read_output.Calculated{2,2};
                 %
-                summary_EIS = [summary_EIS;{date,test,wafer,device,electrode,animal,temp_freq,temp_z}];
+                summary_EIS = [summary_EIS;{date,animal,wafer,device,electrode,test,temp_freq,temp_z}];
+                %summary_EIS = [summary_EIS;{date,animal,wafer,device,electrode,test,temp_freq,temp_z}]; %adds other info from file name
             else
-                summary_EIS = [summary_EIS;{date,test,wafer,device,electrode,animal,0,0}];
+                summary_EIS = [summary_EIS;{date,animal,wafer,device,electrode,test,0,0}];
+                %summary_EIS = [summary_EIS;{date,animal,wafer,device,electrode,test,0,0}]; %adds other info from file name
             end
             clear DTA_read_output
         case 'CV'
@@ -118,9 +135,11 @@ for k = 1:length(nameStructs)
                 temp_Qh = DTA_read_output.Calculated{6,2};
                 temp_slope = DTA_read_output.Calculated{7,2};
                 %
-                summary_CV = [summary_CV;{date,test,wafer,device,electrode,animal,temp_scanrate,temp_CSCc,temp_CSCa,temp_CSCh,temp_Qc,temp_Qa,temp_Qh,temp_slope}];
+                summary_CV = [summary_CV;{date,animal,wafer,device,electrode,test,temp_scanrate,temp_CSCc,temp_CSCa,temp_CSCh,temp_Qc,temp_Qa,temp_Qh,temp_slope}];
+                %summary_CV = [summary_CV;{date,animal,wafer,device,electrode,test,temp_scanrate,temp_CSCc,temp_CSCa,temp_CSCh,temp_Qc,temp_Qa,temp_Qh,temp_slope}]; %adds other info from file name
             else
-                summary_CV = [summary_CV;{date,test,wafer,device,electrode,animal,temp_scanrate,0,0,0,0,0,0,0}];
+                summary_CV = [summary_CV;{date,animal,wafer,device,electrode,test,temp_scanrate,0,0,0,0,0,0,0}];
+                %summary_CV = [summary_CV;{date,animal,wafer,device,electrode,test,temp_scanrate,0,0,0,0,0,0,0}]; %adds other info from file name
             end
             clear DTA_read_output
         otherwise

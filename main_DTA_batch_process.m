@@ -87,9 +87,12 @@ end
 % Run function DTA_summaries on all .mat sturctures in savelocation:
 % !!! NOTE !!!
 % File Names Must Match Convention:
-% YYYYMMDD_TestID_WaferID_DeviceID_ElectrodeID_AnimalID/Electrolyte_OtherInfo.DTA
-% e.g. 20250130_A_W008_F_E04_PBSair_CV50.DTA
-DTA_summaries(savelocation);
+% YYYYMMDD_WaferID_DeviceID_AnimalID-or-Electrolyte_ElectrodeID_TestID_OtherInfo.DTA
+% e.g. 20250130_W008_F_PBSair_E04_A_CV50.DTA
+% Create new folder for summary files if it doesn't already exist:
+newSaveFolder = 'Summaries_Outputs';
+summarieslocation = fullfile(savelocation,newSaveFolder);
+DTA_summaries(savelocation,summarieslocation);
 %
 % ------------------------------------------------------------------------
 %                             END OF FILE

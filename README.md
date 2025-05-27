@@ -1,7 +1,7 @@
 # EchemAnalysis_MATLAB
 Code base for processing and analysis of electrochemical measurement data using MATLAB. <br/>
 For use with Gamry potentiostats and Gamry Framework software (.dta file types). <br/>
-Last Updated: 2025-MAY-16 by Rebecca Frederick
+Last Updated: 2025-MAY-27 by Rebecca Frederick
 
 **********************************************************************************************************
 **********************************************************************************************************
@@ -11,7 +11,7 @@ Last Updated: 2025-MAY-16 by Rebecca Frederick
 - Reads all Gamry .dta files within a folder. 
 - Runs "DTA_read" function to create & save an organized MATLAB data structure for each .dta file. 
 - Runs "DTA_calc" function to append the structure with calculated values depending on measurement type. 
-- Runs "DTA_summaries" function to add .csv and .mat files with all |Z|, CSC, and OCP values labeled with date, test ID, wafer ID, device ID, electrode ID, and animal ID. 
+- Runs "DTA_summaries" function to add .csv and .mat files with all |Z|, CSC, and OCP values labeled with date, wafer ID, device ID, animal ID (or electrolyte type), electrode ID, and test ID. 
 
 ### Functions & Run Order:
 1. DTA_read.m [Output File Format](#individual-file-mat-structures-raw-data--calculated-values)
@@ -53,6 +53,7 @@ Add the "EchemAnalysis_MATLAB" Folder and Subfolders to your MATLAB directory.
 **********************************************************************************************************
 ## OUTPUT FILE DESCRIPTIONS
 
+
 ### Individual File (.mat) Structures (Raw Data & Calculated Values):
 
 - The output will be .mat files with the same filenames as each of the .dta files <br/>
@@ -83,6 +84,7 @@ Add the "EchemAnalysis_MATLAB" Folder and Subfolders to your MATLAB directory.
 | &nbsp;&nbsp;...settings.scanrate	| character	 | scan rate of CV measurement, in mV/sec. |
 | &nbsp;&nbsp;...settings.stepsize	| character	 | step size for each voltage step, in mV, default is 10mV. |
 
+**********************************************************************************************************
 ### Structure Level Added by "DTA_calc.m" Function:
 
 | Structure Level                   | Data Type  | Description |
@@ -92,15 +94,37 @@ Add the "EchemAnalysis_MATLAB" Folder and Subfolders to your MATLAB directory.
 | &nbsp;&nbsp; If EIS...			      | 2x2 cell	 | {1,1} 'Freq' 	&nbsp; {1,2} number in Hz <br/> {2,1} '&#124;Z&#124;'  &nbsp; &nbsp; &nbsp; {2,2} number in ohm |
 | &nbsp;&nbsp; If CV...			        | 7x2 cell	 | {1,1} 'CSCc' &nbsp; &nbsp; {1,2} number in mC/cm^2 <br/> {2,1} 'CSCa' &nbsp; &nbsp;  {2,2} number in mC/cm^2 <br/> {3,1} 'CSCh' &nbsp; &nbsp; {3,2} number in mC/cm^2 <br/> {4,1} 'Qc' &nbsp; &nbsp; &nbsp; &nbsp; {4,2} number in nC <br/> {5,1} 'Qa' &nbsp; &nbsp; &nbsp; &nbsp; {5,2} number in nC <br/> {6,1} 'Qh' &nbsp; &nbsp; &nbsp; &nbsp; {6,2} number in nC <br/> {7,1} 'CVslope' {7,2} number in A/V |
 
-### Summary (.csv) Files:
-#### CV Data Summary
-Columns = Date, Test ID, Wafer ID, Device ID, Electrode ID, Animal ID, Scan Rate (mV/s), CSCc (mC/cm^2), CSCa (mC/cm^2), CSCh (mC/cm^2)
-#### EIS Data Summary
-Columns = Date, Test ID, Wafer ID, Device ID, Electrode ID, Animal ID, Frequency (Hz), Impedance (ohm)
-#### OCP Data Summary
-Columns = Date, Test ID, Wafer ID, Device ID, Electrode ID, Animal ID, OCP (V)
+**********************************************************************************************************
+### Summary (.csv) Files
 
+#### Within One Folder:
+##### OCP Data Summary
+Columns = Date, Wafer ID, Device ID, Animal ID, Electrode ID, Test ID, OCP (V)
+##### EIS Data Summary
+Columns = Date, Wafer ID, Device ID, Animal ID, Electrode ID, Test ID, Frequency (Hz), Impedance (ohm)
+##### CV Data Summary
+Columns = Date, Wafer ID, Device ID, Animal ID, Electrode ID, Test ID, Scan Rate (mV/s), CSCc (mC/cm^2), CSCa (mC/cm^2), CSCh (mC/cm^2)
+
+#### Accross Multiple Folders:
+*In Progress*
+
+**********************************************************************************************************
 ### Plots:
+
+#### Within One Folder:
+##### OCP Data
+*In Progress*
+##### EIS Data
+*In Progress*
+##### CV Data
+*In Progress*
+
+#### Accross Multiple Folders:
+##### OCP Data
+*In Progress*
+##### EIS Data
+*In Progress*
+##### CV Data
 *In Progress*
 
 **********************************************************************************************************

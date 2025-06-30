@@ -1,4 +1,0 @@
-Electrode Sites = PEDOT:PSS Electrodeposited on Gold
-
-Diameter = 50 um
-GSA = 1963.5 um^2

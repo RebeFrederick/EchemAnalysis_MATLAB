@@ -130,22 +130,22 @@ Level 4: Fieldnames = Electrode ID(s) <br/>
 Level 5: Fieldnames = Animal ID(s) <br/>
 Level 6: Fieldnames = Date(s) <br/>
 Level 7: Fieldnames = TestType ("OCP", "EIS", or "CV") <br/>
-Level 8:
 
-| Structure Level: 7-TestType       | Data Type  | Description |
-| :-------------------------------- | :--------  | :-------------------------------------------- |
-| ...  .OCP                         |            |                                               |
-| &nbsp; &nbsp; testID              | char       | Letter ID for Measurement                     |
-| &nbsp; &nbsp; rawdata             | 1x1 struct | Contains Raw Data in 3 Fields: time, Vf, Vach |
-| &nbsp; &nbsp; calcdata            | 1x2 cell   | Same as DTA_read_output.Calculated for OCP    |
-| ...  .EIS                         |            |                                               |
-| &nbsp; &nbsp; testID              | char       | Letter ID for Measurement                     |
-| &nbsp; &nbsp; rawdata             | 1x1 struct | Contains Raw Data in 9 Fields: <br/> fstart, ffinal, ppd, time, freq, Zreal, Zimag, Zmod, Zph |
-| &nbsp; &nbsp; calcdata            | 2x2 cell   | Same as DTA_read_output.Calculated for EIS    |
-| ...  .CV (Fieldnames = Scan Rate) |            |                                               |
-| &nbsp; &nbsp; testID              | char       | Letter ID for Measurement                     |
-| &nbsp; &nbsp; rawdata             | 1x1 struct | Contains Raw Data in 3 Fields: time, Vf, Im   |
-| &nbsp; &nbsp; calcdata            | 7x2 cell   | Same as DTA_read_output.Calculated for CV     |
+| Structure Level: 7-TestType                | Data Type  | Description |
+| :----------------------------------------- | :--------  | :-------------------------------------------- |
+| ... &nbsp; .OCP                            |            |                                               |
+| &nbsp; &nbsp; &nbsp; testID                       | char       | Letter ID for Measurement                     |
+| &nbsp; &nbsp; &nbsp; rawdata                      | 1x1 struct | Contains Raw Data in 3 Fields: time, Vf, Vach |
+| &nbsp; &nbsp; &nbsp; calcdata                     | 1x2 cell   | Same as DTA_read_output.Calculated for OCP    |
+| ... &nbsp; .EIS                            |            |                                               |
+| &nbsp; &nbsp; &nbsp; testID                       | char       | Letter ID for Measurement                     |
+| &nbsp; &nbsp; &nbsp; rawdata                      | 1x1 struct | Contains Raw Data in 9 Fields: <br/> fstart, ffinal, ppd, time, freq, Zreal, Zimag, Zmod, Zph |
+| &nbsp; &nbsp; &nbsp; calcdata                     | 2x2 cell   | Same as DTA_read_output.Calculated for EIS    |
+| ... &nbsp; .CV                                   |            |                                               |
+| &nbsp; &nbsp; ... &nbsp; Fieldnames = Scan Rate  | 1x1 struct |                                         |
+| &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; testID               | char       | Letter ID for Measurement                     |
+| &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; rawdata              | 1x1 struct | Contains Raw Data in 3 Fields: time, Vf, Im   |
+| &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; calcdata             | 7x2 cell   | Same as DTA_read_output.Calculated for CV     |
 **********************************************************************************************************
 ### Plots
 

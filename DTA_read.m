@@ -72,15 +72,19 @@ DTA_read_output = struct('filename', [], 'testType', [], 'testDate', [], 'testTi
 t = regexp(filename, filesep, 'split');
 DTA_read_output.filename = t{end};
 
+% ------------------------------------------------------------------------
 % USER EDIT FILE NAME CONVENTION BELOW !!!
-labels_temp = split(DTA_read_output.filename,'_');  % labels separated by underscores
-labels_count = length(labels_temp);
+% ------------------------------------------------------------------------
+labels_temp = split(DTA_read_output.filename,'_');  % defines that labels are separated by underscores
+labels_count = length(labels_temp); % counts how many separate strings (separated by underscores) are in filename
+%
 date = labels_temp{1};  % format = YYYYMMDD
-wafer = labels_temp{2};  % format = project-specific
-device = labels_temp{3};  % format = project-specific
-animal = labels_temp{4};  % format = project-specific
+wafer = labels_temp{2};  % format = string, project-specific
+device = labels_temp{3};  % format = string, project-specific
+animal = labels_temp{4};  % format = string, project-specific
 electrode = labels_temp{5};  % format = E00 or E000
 test = labels_temp{6};  % format = A (i.e. A,B,...,Z,ZA,ZB,...)
+% Handle additional info not part of main labeling scheme:
 if labels_count>7
     other = labels_temp{7};  % format = project-specific
     for lbl = 7:labels_count-1
@@ -92,8 +96,12 @@ elseif labels_count==7
 else
     other = ' ';
 end
+% Create Structure with New Labels/Categories:
 DTA_read_output.fileLabels = struct('date',date,'wafer',wafer,'device',device,'animal',animal,'electrode',electrode,'test',test,'other',other);
-
+% ------------------------------------------------------------------------
+% END OF FILE NAME CONVENTION EDIT
+% ------------------------------------------------------------------------
+% 
 % ------------------------------------------------------------------------
 %Open the file for binary read access
 fid=fopen(filename,'r');

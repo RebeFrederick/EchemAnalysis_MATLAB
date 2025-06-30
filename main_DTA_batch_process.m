@@ -1,7 +1,7 @@
 % Created By:     Rebecca Frederick
 % Date Created:   24 April 2025
 % Modified By:    Rebecca Frederick
-% Date Modified:  16 May 2025
+% Date Modified:  29 May 2025
 % ------------------------------------------------------------------------
 %                           FILE INFORMATION
 % ------------------------------------------------------------------------
@@ -26,6 +26,8 @@ clc
 %     freq. for |Z| values, electrode GSA, CV curve# for CSC, percent of 
 %     data to average for OCP values.
 % 
+% Update 2025-05-29 by Rebecca Frederick
+%   - Added section to run DTA_plots function.
 %}
 % ------------------------------------------------------------------------
 %                       IMPORT ALL DATA FILE NAMES
@@ -36,6 +38,9 @@ clc
 %MainFolder = 'S:\Code Repository\Deku_NeuroEng_EchemAnalysis_MATLAB\Test_Data_Files';
 MainFolder = uigetdir('Pick folder location containing raw data files:');
 savelocation = uigetdir('Pick desired save location for ouputs:');
+% Create new folder for summary files if it doesn't already exist:
+newSaveFolder = 'Summaries_Outputs';
+summarieslocation = fullfile(savelocation,newSaveFolder);
 %
 allNames = dir(sprintf('%s%s',MainFolder,'\*.dta')); % all files in "MainFolder"
 % ------------------------------------------------------------------------
@@ -45,7 +50,7 @@ for i = 1:length(allNames)
 end
 
 % ------------------------------------------------------------------------
-%                    PUT ALL DATA FILES INTO STRUCTURES
+%%                    PUT ALL DATA FILES INTO STRUCTURES
 % ------------------------------------------------------------------------
 % Run Function DTA_read to Create Data Structure for Each File:
 for j = 1:length(nameFiles)   
@@ -53,7 +58,7 @@ for j = 1:length(nameFiles)
 end
 %
 % ------------------------------------------------------------------------
-%                 ADD CALCULATED VALUES INTO STRUCTURES
+%%                ADD CALCULATED VALUES INTO STRUCTURES
 % ------------------------------------------------------------------------
 % Pull names of all structures in save location:
 nameStructs = dir(sprintf('%s%s',savelocation,'\*.mat')); 
@@ -64,7 +69,7 @@ clear DTA_read_output
 prompt = {'Frequency to Use for |Z| Summaries (in Hz)','Electrode GSA (in um^2)','CV Curve Number to Use for CSC (positive integer)','Percent of Data to Average for OCP Value (positive integer)'};
 dlgtitle = 'Input Values for Calculations';
 fieldsize = [1 45; 1 45; 1 45; 1 45];
-definput = {'1000', '2000', '3', '10'};
+definput = {'1000', '2000', '3', '10'}; % Hz, um^2, integer, integer
 uservals = inputdlg(prompt,dlgtitle,fieldsize,definput)
 % Move user inputs to variables for DTA_calc function inputs:
 eis_val = str2double(uservals{1});
@@ -82,17 +87,33 @@ for k = 1:length(nameStructs)
 end
 %
 % ------------------------------------------------------------------------
-%                 ADD SUMMARIES FOR |Z|, CSC, & OCP
+%%                 ADD SUMMARIES FOR |Z|, CSC, & OCP
 % ------------------------------------------------------------------------
-% Run function DTA_summaries on all .mat sturctures in savelocation:
 % !!! NOTE !!!
 % File Names Must Match Convention:
 % YYYYMMDD_WaferID_DeviceID_AnimalID-or-Electrolyte_ElectrodeID_TestID_OtherInfo.DTA
 % e.g. 20250130_W008_F_PBSair_E04_A_CV50.DTA
-% Create new folder for summary files if it doesn't already exist:
-newSaveFolder = 'Summaries_Outputs';
-summarieslocation = fullfile(savelocation,newSaveFolder);
+if exist('summarieslocation')~=7
+    savedir = cd(savelocation);
+    mkdir(newSaveFolder)
+    addpath(newSaveFolder);
+    cd(savedir);
+else
+end
+% Run function DTA_summaries on all .mat structures in savelocation:
 DTA_summaries(savelocation,summarieslocation);
+
+% ------------------------------------------------------------------------
+%%                COMBINE STRUCTURES INTO MASTER DATASET
+% ------------------------------------------------------------------------
+% Run function DTA_master_struct on all .mat structures in savelocation:
+DTA_master_struct(savelocation,summarieslocation)
+%
+% ------------------------------------------------------------------------
+%%                    ADD PLOTS FOR OCP, |Z|, & CSC
+% ------------------------------------------------------------------------
+% Run function DTA_plots on summary files in savelocation:
+DTA_plots(savelocation,summarieslocation);
 %
 % ------------------------------------------------------------------------
 %                             END OF FILE

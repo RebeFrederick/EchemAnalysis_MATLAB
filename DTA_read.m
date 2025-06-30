@@ -39,20 +39,24 @@ function DTA_read_output = DTA_read(filename,savelocation)
 %{
 % UPDATE LOG
 %
-% Update: Rebecca Frederick 2024-FEB-19
-%   - replaced some variable names.
-%   - added code to change Gamry labels EISPOT and CORPOT to EIS and OCP
-%     in output structure and data.
-%   - added code to send structure DTA_read_output to workspace and save in
-%     Test_File_Outputs folder.
+% Update 2025-June-10 (RAF)
+%  - moved file name labels from DTA_summaries function to this function.
+%  - [to-do] use UI to ask for filename conventions each run.
 %
-% Update: Rebecca Frederick 2025-APR-24
-%   - changed outputs and save files to use .dta file name instead of
-%     generic name "DTA_read_output". Needed to allow 'looping' through
-%     multiple .dta files within a folder(s).
-% 
 % Update 2025-May-16 Rebecca Frederick
 %  - cleaned up comments, created separate Update Log comment section.
+%
+% Update: Rebecca Frederick 2025-APR-24
+%  - changed outputs and save files to use .dta file name instead of
+%    generic name "DTA_read_output". Needed to allow 'looping' through
+%    multiple .dta files within a folder(s).
+% 
+% Update: Rebecca Frederick 2024-FEB-19
+%  - replaced some variable names.
+%  - added code to change Gamry labels EISPOT and CORPOT to EIS and OCP
+%    in output structure and data.
+%  - added code to send structure DTA_read_output to workspace and save in
+%    Test_File_Outputs folder.
 % 
 %}
 % ------------------------------------------------------------------------
@@ -68,6 +72,29 @@ DTA_read_output = struct('filename', [], 'testType', [], 'testDate', [], 'testTi
 t = regexp(filename, filesep, 'split');
 DTA_read_output.filename = t{end};
 
+% USER EDIT FILE NAME CONVENTION BELOW !!!
+labels_temp = split(DTA_read_output.filename,'_');  % labels separated by underscores
+labels_count = length(labels_temp);
+date = labels_temp{1};  % format = YYYYMMDD
+wafer = labels_temp{2};  % format = project-specific
+device = labels_temp{3};  % format = project-specific
+animal = labels_temp{4};  % format = project-specific
+electrode = labels_temp{5};  % format = E00 or E000
+test = labels_temp{6};  % format = A (i.e. A,B,...,Z,ZA,ZB,...)
+if labels_count>7
+    other = labels_temp{7};  % format = project-specific
+    for lbl = 7:labels_count-1
+        other2 = labels_temp{lbl+1};
+        other = join([other,'_',other2],1);  % format = project-specific
+    end
+elseif labels_count==7
+    other = labels_temp{7};  % format = project-specific
+else
+    other = ' ';
+end
+DTA_read_output.fileLabels = struct('date',date,'wafer',wafer,'device',device,'animal',animal,'electrode',electrode,'test',test,'other',other);
+
+% ------------------------------------------------------------------------
 %Open the file for binary read access
 fid=fopen(filename,'r');
 
@@ -208,14 +235,13 @@ while ~feof(fid)
             end
     end
 end
-
+%--------------------------------------------------------------------------
+%
 %Close the file
 fclose(fid);
-
 %
 %--------------------------------------------------------------------------
-%--------------------------------------------------------------------------
-%  OUTPUT / SAVE DATA
+%                               OUTPUT / SAVE DATA
 %--------------------------------------------------------------------------
 %Send DTA_read_output Structure to Workspace
 %Format: assignin('base', variable_name, variable);
@@ -229,6 +255,7 @@ save(savefilepath,'DTA_read_output');
 end
 %}
 %--------------------------------------------------------------------------
+%                               readBlock Function
 %--------------------------------------------------------------------------
 function [data, fid] = readBlock(fid, delim, testNum)
 %Read out the whole block of text
@@ -264,8 +291,13 @@ while bGo && ~feof(fid)
     end
 end
 end
-
+%--------------------------------------------------------------------------
+%                               errorfun Function
+%--------------------------------------------------------------------------
 function result = errorfun(S, varargin)
    warning(S.identifier, S.message);
    result = 0;
 end
+%--------------------------------------------------------------------------
+%                                  END FILE
+%--------------------------------------------------------------------------

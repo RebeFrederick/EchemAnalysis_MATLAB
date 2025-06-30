@@ -1,7 +1,7 @@
 # EchemAnalysis_MATLAB
 Code base for processing and analysis of electrochemical measurement data using MATLAB. <br/>
 For use with Gamry potentiostats and Gamry Framework software (.dta file types). <br/>
-Last Updated: 2025-MAY-27 by Rebecca Frederick
+Last Updated: 2025-JUN-30 by Rebecca Frederick
 
 **********************************************************************************************************
 **********************************************************************************************************
@@ -11,13 +11,16 @@ Last Updated: 2025-MAY-27 by Rebecca Frederick
 - Reads all Gamry .dta files within a folder. 
 - Runs "DTA_read" function to create & save an organized MATLAB data structure for each .dta file. 
 - Runs "DTA_calc" function to append the structure with calculated values depending on measurement type. 
-- Runs "DTA_summaries" function to add .csv and .mat files with all |Z|, CSC, and OCP values labeled with date, wafer ID, device ID, animal ID (or electrolyte type), electrode ID, and test ID. 
+- Runs "DTA_summaries" function to add .csv and .mat files with all |Z|, CSC, and OCP values labeled with date, wafer ID, device ID, animal ID (or electrolyte type), electrode ID, and test ID.
+- Runs "DTA_master_struct" function to combine all .dta file data structures into one 'master' MATLAB data structure.
+- Runs "DTA_plots" function to create basic visualizations of data within the folder.
 
 ### Functions & Run Order:
 1. DTA_read.m [Output File Format](#individual-file-mat-structures-raw-data--calculated-values)
 2. DTA_calc.m [Output File Format](#structure-level-added-by-dta_calcm-function)
 3. DTA_summaries.m [Output File Format](#summary-csv-files)
-4. DTA_plots.m (*In Progress*) [Output File Format](#plots)
+4. DTA_master_struct.m [Output File Format](#master-data-structure)
+5. DTA_plots.m (*In Progress*) [Output File Format](#plots)
 
 **********************************************************************************************************
 **********************************************************************************************************
@@ -27,15 +30,24 @@ Last Updated: 2025-MAY-27 by Rebecca Frederick
 ~ ~ OR ~ ~ <br/>
 Open MATLAB to your default directory. <br/>
 Add the "EchemAnalysis_MATLAB" Folder and Subfolders to your MATLAB directory.
-2. Open the main data analysis file "DTA_batch_process.m"
-3. **Run _main_DTA_batch_process.m**
-4. At the first prompt, **select the folder that contains your .dta raw data files**.
+2. **Open the function file for reading .dta files: "DTA_read.m"**
+3. **Edit the filename convention for labeling data (Lines 78 and 81-86)**. <br/>
+All fields must have a definition, either pulled from the filename or explicitely defined (as a string).
+   - date (Default Format: YYYYMMDD)
+   - wafer (Any String, must not start with a number!)
+   - device (Any String, must not start with a number!)
+   - animal (ID/Name, or Electrolyte ID)
+   - electrode (Default Format: E00)
+   - test (Letter Increment: A, B, C, ..., Y, Z, ZA, ZB, ..., ZZ, ZZA, ...)
+4. **Open the main data analysis file: "DTA_batch_process.m"**
+5. **Run _main_DTA_batch_process.m**
+6. At the first prompt, **select the folder that contains your .dta raw data files**. <br/>
    If your files are in subfolders, the analysis will not run on any files in
    those subfolders, it will only run on files in the main folder you selected.
-5. At the second prompt, **select the folder where you want to save all output files**.
+7. At the second prompt, **select the folder where you want to save all output files**. <br/>
    Recommended: Create a folder within your raw data folder named "MainFolder_Analysis".
-6. Wait for MATLAB to finish processing your files.
-7. At the third prompt, **enter your desired values for calculations**:
+8. Wait for MATLAB to finish processing your files.
+9. At the third prompt, **enter your desired values for calculations**:
    - Frequency (in Hz) for pulling impedance magnitude data. <br/>
      Default is 1 kHz.
    - Electrode Geometric Surface Area (GSA, in um^2). <br/>
@@ -44,10 +56,10 @@ Add the "EchemAnalysis_MATLAB" Folder and Subfolders to your MATLAB directory.
      Default is curve #3. 
    - Percentage (as whole integer) of data to use for calculating average open circuit potential (OCP) value. <br/>
      Default is last 10% of total measurement time. 
-8. Wait for MATLAB to finish processing your files.
-9. **Check that the output files are saved** in your selected folder and 
+10. Wait for MATLAB to finish processing your files.
+11. **Check that the output files are saved** in your selected folder and 
    contain the data, summaries, and plots (*in progress*) you selected in the user prompts.
-10. **Repeat for any additional folders** of .dta files you would like to process.
+12. **Repeat for any additional folders** of .dta files you would like to process.
 
 **********************************************************************************************************
 **********************************************************************************************************
@@ -109,13 +121,39 @@ Columns = Date, Wafer ID, Device ID, Animal ID, Electrode ID, Test ID, Scan Rate
 *In Progress*
 
 **********************************************************************************************************
-### Plots:
+### Master Data Structure
+Pulls Names from Filename. Defined in "DTA_read" function. <br/>
+Level 1: Structure Name = "masterDTA" <br/>
+Level 2: Fieldnames = Wafer ID(s) <br/>
+Level 3: Fieldnames = Device ID(s) <br/>
+Level 4: Fieldnames = Electrode ID(s) <br/>
+Level 5: Fieldnames = Animal ID(s) <br/>
+Level 6: Fieldnames = Date(s) <br/>
+Level 7: Fieldnames = TestType ("OCP", "EIS", or "CV") <br/>
+Level 8:
+
+| Structure Level: 7-TestType       | Data Type  | Description |
+| :-------------------------------- | :--------  | :-------------------------------------------- |
+| ...  .OCP                         |            |                                               |
+| &nbsp; &nbsp; testID              | char       | Letter ID for Measurement                     |
+| &nbsp; &nbsp; rawdata             | 1x1 struct | Contains Raw Data in 3 Fields: time, Vf, Vach |
+| &nbsp; &nbsp; calcdata            | 1x2 cell   | Same as DTA_read_output.Calculated for OCP    |
+| ...  .EIS                         |            |                                               |
+| &nbsp; &nbsp; testID              | char       | Letter ID for Measurement                     |
+| &nbsp; &nbsp; rawdata             | 1x1 struct | Contains Raw Data in 9 Fields: <br/> fstart, ffinal, ppd, time, freq, Zreal, Zimag, Zmod, Zph |
+| &nbsp; &nbsp; calcdata            | 2x2 cell   | Same as DTA_read_output.Calculated for EIS    |
+| ...  .CV (Fieldnames = Scan Rate) |            |                                               |
+| &nbsp; &nbsp; testID              | char       | Letter ID for Measurement                     |
+| &nbsp; &nbsp; rawdata             | 1x1 struct | Contains Raw Data in 3 Fields: time, Vf, Im   |
+| &nbsp; &nbsp; calcdata            | 7x2 cell   | Same as DTA_read_output.Calculated for CV     |
+**********************************************************************************************************
+### Plots
 
 #### Within One Folder:
 ##### OCP Data
-*In Progress*
+Creates scatter plot with OCP value for each electrode, as well as the average and standard deviation of all electrodes.
 ##### EIS Data
-*In Progress*
+Creates scatter plot of impedance magnitude at the user-selected frequency (during DTA_calc function, default = 1 kHz) for each electrode, as well as the average and standard deviation of all electrodes.
 ##### CV Data
 *In Progress*
 

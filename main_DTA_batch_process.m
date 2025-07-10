@@ -7,11 +7,22 @@
 % ------------------------------------------------------------------------
 % FILE OPERATION:
 % Pulls list of all Gamry .dta files within a folder.
-% Runs DTA_file_read function to
+% Runs DTA_read function to
 %   create & save an organized MATLAB data structure for each file.
 % Runs DTA_calc function to
 %   append the structure with calculated values depending on measurement
 %   (EIS or CV or OCP)
+% Runs DTA_summaries function to
+%   create .mat and .csv files of all files' OCP, |Z|, and CSC data.
+% Runs DTA_combined_struct function to
+%   place data from each individual .dta file into one combined structure
+%   for that day/folder
+% Runs DTA_plots function to
+%   output .mat and .png figures of
+%     - OCP for each electrode and avg. +/- std. dev.
+%     - |Z| at selected freq. for each electrode and avg. +/- std. dev.
+%     - CSC at each scan rate for each electrode and avg. +/- std. dev.
+%
 % ------------------------------------------------------------------------
 clear all
 clc
@@ -104,17 +115,29 @@ end
 DTA_summaries(savelocation,summarieslocation);
 
 % ------------------------------------------------------------------------
-%%                COMBINE STRUCTURES INTO MASTER DATASET
+%%                   COMBINE FILE STRUCTURES INTO ONE
 % ------------------------------------------------------------------------
 % Run function DTA_master_struct on all .mat structures in savelocation:
-DTA_master_struct(savelocation,summarieslocation)
+DTA_combined_struct(savelocation,summarieslocation)
 %
 % ------------------------------------------------------------------------
 %%                    ADD PLOTS FOR OCP, |Z|, & CSC
 % ------------------------------------------------------------------------
 % Run function DTA_plots on summary files in savelocation:
-DTA_plots(savelocation,summarieslocation);
+DTA_plots(savelocation,summarieslocation,uservals);
 %
+% ------------------------------------------------------------------------
+%%               COMBINE STRUCTURES INTO MASTER STRUCTURE
+% ------------------------------------------------------------------------
+% Run function DTA_master_struct on all .mat structures in savelocation:
+%{    
+% ^^^ Remove Bracket in Line Above and Run Section. Then Replace Bracket.
+StructuresLocation = 'S:\[00] Project Folders\Aging_PI-vs-aSiC_Pt_MEAs\RawDataFiles';
+AnalysisLocation = 'S:\[00] Project Folders\Aging_PI-vs-aSiC_Pt_MEAs\DataAnalysisFiles\MATLAB_Aging_Analysis';
+DTA_master_struct(StructuresLocation,AnalysisLocation)
+%}
+%
+% ------------------------------------------------------------------------
 % ------------------------------------------------------------------------
 %                             END OF FILE
 % ------------------------------------------------------------------------

@@ -1,4 +1,4 @@
-function DTA_plots(savelocation,summarieslocation)
+function DTA_plots(savelocation,summarieslocation,uservals)
 % ------------------------------------------------------------------------
 %                           FILE INFORMATION
 % ------------------------------------------------------------------------
@@ -6,11 +6,11 @@ function DTA_plots(savelocation,summarieslocation)
 % Created By:     Rebecca Frederick
 % Date Created:   16 May 2025
 % Modified By:    Rebecca Frederick
-% Date Modified:  10 June 2025
+% Date Modified:  10 July 2025
 %
 % FILE OPERATION:
 % Summarizes CSC and |Z| and OCP values accross multiple files.
-% Use to group by electrode, device, animal, electrolyte, etc.
+% Plots all CV and EIS Curves within single folder.
 % 
 % ------------------------------------------------------------------------
 %clear all
@@ -19,6 +19,17 @@ function DTA_plots(savelocation,summarieslocation)
 %{
 % UPDATE LOG
 % 
+% Update 2025-07-10 (RAF)
+%   - changed CV curve plot method to create subplots for any/all
+%     scan rates in the data structure.
+%   - [to-do] add Nyquist plots with Bode plots for EIS data.
+% 
+% Update 2025-07-09 (RAF)
+%   - added/updated sections for each plot or set of plots.
+%   - added EIS curves plot; overlay of all electrodes in one plot.
+%   - added CV curves plots; overlay of all electrodes in one plot.
+%   - [to-do] handle cases with scan rates besides 50mV/s and 50000mV/s
+%
 % Update 2025-06-10 (RAF)
 %   - [to-do] plot overlay all electrodes by looping through 
 %     masterDTA structure
@@ -36,13 +47,34 @@ function DTA_plots(savelocation,summarieslocation)
 % 
 %}
 % ------------------------------------------------------------------------
+%%  PULL REQUIRED DATA FILES
 % ------------------------------------------------------------------------
-% List All .mat Files Within Selected Folder:
-nameStructs = dir(sprintf('%s%s',savelocation,'\*.mat')); % all structures in save location
-% ------------------------------------------------------------------------
-%% Plot OCP Data
+% Pull info used to calculate |Z| and CSC numbers:
+Zfreqency = uservals{1};
+GSA = uservals{2};
+CurveID = uservals{3};
+OCPpercent = uservals{4};
+
+% Pull OCP Summary Data:
 ocp_sum_file = fullfile(summarieslocation,'summary_OCPavg.mat');
-%
+
+% Pull EIS Summary Data:
+eis_sum_file = fullfile(summarieslocation,'summary_EISavg.mat');
+
+% Pull CV Summary Data;
+cv_sum_file = fullfile(summarieslocation,'summary_CVavg.mat');
+
+% Pull Data Structure with all OCP, EIS, CV raw data.
+if exist(fullfile(summarieslocation,"combinedDTA_Struct.mat"))==0  % check if current location contains a combinedDTA_Struct.mat file
+    error('File does not exist: %s', "combinedDTA_Struct.mat");  % error message if no file in current folder
+else  % if file does exist in current folder...
+    load(fullfile(summarieslocation,"combinedDTA_Struct.mat")) % loads "combinedDTA"
+end
+
+
+% ------------------------------------------------------------------------
+%%  PLOT OCP DATA
+% ------------------------------------------------------------------------
 if isfile(ocp_sum_file)==0
     % skip if no OCP data/summary file is present.
 else
@@ -60,7 +92,7 @@ else
     errorbar(OCPxavg,OCPyavg,OCPystd,'sk','MarkerSize',15,'LineWidth',2)
     grid on
     ylabel("Open Circuit Potential, mV");
-    title(sprintf('Device %s %s',string(summary_OCPavg.DeviceID(1)),string(summary_OCPavg.Date(1))));
+    title(sprintf('Wafer %s, Device %s, Date %s',string(summary_OCPavg.WaferID(1)),string(summary_OCPavg.DeviceID(1)),string(datetime(summary_OCPavg.Date(1),'Format','yyyy-MMM-dd'))));
     %xlim('auto')
     ylim('auto')
     xlim([categorical(OCPxavg), categorical(OCPx(end))])
@@ -69,8 +101,8 @@ else
     saveas(OCPfig,fullfile(summarieslocation,'summaryOCP.png'))
 end
 % ------------------------------------------------------------------------
-%% Plot |Z| Data
-eis_sum_file = fullfile(summarieslocation,'summary_EISavg.mat');
+%%  PLOT |Z| DATA
+% ------------------------------------------------------------------------
 if isfile(eis_sum_file)==0
     % skip if no EIS data/summary file is present.
 else
@@ -87,8 +119,8 @@ else
     plot(Zx,Zy,'.b','MarkerSize',20);
     errorbar(Zxavg,Zyavg,Zystd,'sk','MarkerSize',15,'LineWidth',2);
     grid on
-    ylabel("Impedance |Z|, Ohm");
-    title(sprintf('Device %s %s',string(summary_EISavg.DeviceID(1)),string(summary_EISavg.Date(1))));
+    ylabel(sprintf('%s%s%s',Zfreqency,' Hz ','Impedance |Z|, Ohm'));
+    title(sprintf('Wafer %s, Device %s, Date %s',string(summary_EISavg.WaferID(1)),string(summary_EISavg.DeviceID(1)),string(datetime(summary_EISavg.Date(1),'Format','yyyy-MMM-dd'))));
     %xlim('auto')
     ylim('auto')
     xlim([categorical(Zxavg), categorical(Zx(end))])
@@ -96,50 +128,351 @@ else
     %
     saveas(Zfig,fullfile(summarieslocation,'summaryZ.png'))
 end
+
 % ------------------------------------------------------------------------
-%% Plot CSC Data
-%{ 
-cv_sum_file = fullfile(summarieslocation,'summary_CVavg.mat')
+%%  PLOT CSC DATA <<< in progress >>>
+% ------------------------------------------------------------------------
+%
 if isfile(cv_sum_file)==0
     % skip if no CV data/summary file is present.
 else
     load(cv_sum_file)
+    CSCfig = figure;  % initialize new figure "CSCfig"
 
-IN PROGRESS:
-NEED TO SPLIT DATA BY SCAN RATE, THEN OVERLAY EACH DATA SET ON ONE PLOT
     % Split data by scan rate
     uniqueScanRates = unique(summary_CVavg.ScanRate);
-    hold on; % Hold on to overlay plots
 
     % Loop through each unique scan rate and plot the corresponding data
-    for i = 1:length(uniqueScanRates)
-        currentRate = uniqueScanRates(i);
+    for a = 1:length(uniqueScanRates)
+        currentRate = uniqueScanRates(a);
+
         % Extract data for the current scan rate
         currentData = summary_CVavg(summary_CVavg.ScanRate == currentRate, :);
+        %
+        CSCx = currentData.ElectrodeID(1:end-2);
+        CSCcy = currentData.CSCc(1:end-2);
+        CSCay = currentData.CSCa(1:end-2);
+        %
+        CSCxavg = currentData.ElectrodeID(end-1);
+        CSCcyavg = currentData.CSCc(end-1);
+        CSCayavg = currentData.CSCa(end-1);  
+        %
+        CSCcystd = currentData.CSCc(end);
+        CSCaystd = currentData.CSCa(end);
+        %
         
         % Plot the data for the current scan rate
-        scatter(currentData.ElectrodeID, currentData.CSCc, 'filled', 'DisplayName', sprintf('Scan Rate: %.2f', currentRate));
+        figure(CSCfig)
+        subplot(length(uniqueScanRates),1,a)
+        hold on
+        grid on
+        plot(CSCx,CSCcy,'.-b','MarkerSize',20);
+        plot(CSCx,CSCay,'.--c','MarkerSize',20);
+        errorbar(CSCxavg,CSCcyavg,CSCcystd,'s','MarkerSize',10,'LineWidth',2,'Color',[0 0 0]);
+        errorbar(CSCxavg,CSCayavg,CSCaystd,'s','MarkerSize',10,'LineWidth',2,'Color',[0.8 0.8 0.8]);
+        ylabel('CSC, mC/cm^2');
+        title(sprintf('%s %s, Wafer %s, Device %s, Date %s',string(currentRate),'mV/s',string(summary_CVavg.WaferID(1)),string(summary_CVavg.DeviceID(1)),string(datetime(summary_CVavg.Date(1),'Format','yyyy-MMM-dd'))));
+        xlim([categorical(CSCxavg), categorical(CSCx(end))])
+        legend("Cathodic","Anodic","Cathodic","Anodic")
+        hold off
+        %
     end
 
-    hold off; % Release the hold on the current figure
-    grid on;
-    ylabel("Current, A");
-    title(sprintf('Cyclic Voltammetry Data Overlay for Device %s %s', string(summary_CVavg.DeviceID(1)), string(summary_CVavg.Date(1))));
-    legend show; % Show legend for scan rates
+    % Save CSC Summary Plots:
+    saveas(CSCfig,fullfile(summarieslocation,'summaryCSC.png'))
 
-
-
-%CSCfig = scatter(tbl,'ElectrodeID','CSCc','filled','ColorVariable','ScanRate');
-CSCx = summary_CVavg.ElectrodeID;
-CSCcy = summary_CVavg.CSCc;
-CSCay = summary_CVavg.CSCa;
-datalabels = summary_CVavg.ScanRate;
-CSCfig = scatter(CSCx,[CSCcy,CSCay],"filled")
-CSCfig.ColorVariable = "ScanRate";
-saveas(CSCfig,fullfile(summarieslocation,'summaryCSC.png'))
-legend("Cathodic","Anodic")
 end
-%}
+
+
+% ------------------------------------------------------------------------
+%%  PLOT EIS CURVES
+% ------------------------------------------------------------------------
+% Multi-Loop, through fieldnames for each structure level:
+wafer_list = fieldnames(combinedDTA);  % list all wafer IDs (should be one per combinedDTA file)
+for r = 1:length(wafer_list)  % r = count for waferIDs (lvl01) in combinedDTA
+    wafer = wafer_list{r};  % pull current loop's waferID
+    device_list = fieldnames(combinedDTA.(wafer)); % list all device IDs (should be one per combinedDTA file)
+    for s = 1:length(device_list) % s = count for device IDs (lvl02) in combined DTA
+        device = device_list{s}; % pull current loop's deviceID
+        date_list = fieldnames(combinedDTA.(wafer).(device)); % list all dates (often one per combinedDTA file, can be more)
+        for t = 1:length(date_list) % t = count for dates (lvl03) in combined DTA
+            date = date_list{t}; % pull current loop's date
+            % Setup Figure for EIS Plot
+            EISbode = figure;
+            markers = {'.-', '.--', '+-', '+--'}; % not in use 2025-07-09
+                % ^ can't figure out how to loop/repeat marker types.
+            %markers = {'o', '+', '*', 's', 'd', '^', 'v', '>', '<', 'p', 'h'};
+            % Continue loop levels:
+            electrode_list = fieldnames(combinedDTA.(wafer).(device).(date)); % list all electrode IDs
+            for u = 1:length(electrode_list) % u = count for electrode IDs
+                electrode = electrode_list{u}; % pull current loop's electrode ID
+                % Create list for legend entry to EISfig later:
+                legend_list{u} = electrode;
+                % Loop through marker type series in plot:
+                num_marker_loops = length(electrode_list)/length(markers);
+                marker_i = 0;
+                for e = 1:num_marker_loops
+                    for f = 1:length(markers)
+                        marker_i = marker_i+1;
+                        marker_index(marker_i) = f;
+                    end
+                end
+                % Continue loop levels:
+                testType_list = fieldnames(combinedDTA.(wafer).(device).(date).(electrode)); % list all test IDs (OCP, EIS, CV)
+                for v = 1:length(testType_list) % v = count for test IDs
+                    testType = testType_list{v}; % pull current loop's test ID
+                    switch testType % use switch case to setup struct format depending on type of measurement (OCP, EIS, or CV)
+                    case 'OCP' % if OCP, do nothing
+                        case 'EIS' % if EIS, pull raw data for current level in structure
+                        temp_eis_freq = cell2mat(combinedDTA.(wafer).(device).(date).(electrode).(testType).rawdata.freq);
+                        temp_eis_Zmod = cell2mat(combinedDTA.(wafer).(device).(date).(electrode).(testType).rawdata.Zmod);
+                        temp_eis_Zph = cell2mat(combinedDTA.(wafer).(device).(date).(electrode).(testType).rawdata.Zph);
+                        % Add current electrode's data to EISbode:
+                        figure(EISbode)
+                        subplot(2,1,1)
+                        hold on
+                        grid on
+                        %plot(temp_eis_freq,temp_eis_Zmod,markers(marker_index(u)),'MarkerSize',10,'LineWidth',2);
+                        plot(temp_eis_freq,temp_eis_Zmod,'.-','MarkerSize',10,'LineWidth',1);
+                        xscale log
+                        yscale log
+                        ylabel('Impedance |Z|, Ohm');
+                        xlabel('Frequency, Hz');
+                        title(sprintf(' Wafer %s, Device %s, Date %s',wafer,device,string(datetime(date(2:end),'InputFormat','yyyyMMdd','Format','yyyy-MMM-dd'))));
+                        subplot(2,1,2)
+                        hold on
+                        grid on
+                        %plot(temp_eis_freq,temp_eis_Zph,markers(marker_index(u)),'MarkerSize',10,'LineWidth',2);
+                        plot(temp_eis_freq,temp_eis_Zph,'.-','MarkerSize',10,'LineWidth',1);
+                        xscale log
+                        yscale linear
+                        ylim([-90 0])
+                        ylabel('Phase, Degrees');
+                        xlabel('Frequency, Hz');
+                        title(sprintf(' Wafer %s, Device %s, Date %s',wafer,device,string(datetime(date(2:end),'InputFormat','yyyyMMdd','Format','yyyy-MMM-dd'))));
+                        %xlim('auto')
+                        %ylim('auto')
+                        % Placeholders for building Nyquist plots later:
+                            %{
+                            temp_eis_time = cell2mat(combinedDTA.(wafer).(device).(date).(electrode).(testType).rawdata.time);
+                            temp_eis_Zreal = cell2mat(combinedDTA.(wafer).(device).(date).(electrode).(testType).rawdata.Zreal);
+                            temp_eis_Zimag = cell2mat(combinedDTA.(wafer).(device).(date).(electrode).(testType).rawdata.Zimag);
+                            %}
+                    case 'CV' % if CV, do nothing
+                    end  % end of switch case
+                end  % end for v, loop through testType
+            end  % end for u, loop through electrode
+            % Add legend entry to EISbode figure:
+            figure(EISbode)
+            legend(legend_list,'Location','north','Orientation','horizontal','NumColumns',8)
+        end  % end for t, loop through date
+    end  % end for s, loop through device
+end  % end for r, loop through wafer
+hold off
+% (note: may need to move save within date loop to account for cases with
+%   data from multiple dates within the same folder.)
+saveas(EISbode,fullfile(summarieslocation,'summaryEISbode.png'))
+
+
+% ------------------------------------------------------------------------
+%%  PLOT CV CURVES
+% ------------------------------------------------------------------------
+% Multi-Loop, through fieldnames for each structure level:
+wafer_list = fieldnames(combinedDTA);  % list all wafer IDs (should be one per combinedDTA file)
+for r = 1:length(wafer_list)  % r = count for waferIDs (lvl01) in combinedDTA
+    wafer = wafer_list{r};  % pull current loop's waferID
+    device_list = fieldnames(combinedDTA.(wafer)); % list all device IDs (should be one per combinedDTA file)
+    for s = 1:length(device_list) % s = count for device IDs (lvl02) in combined DTA
+        device = device_list{s}; % pull current loop's deviceID
+        date_list = fieldnames(combinedDTA.(wafer).(device)); % list all dates (often one per combinedDTA file, can be more)
+        for t = 1:length(date_list) % t = count for dates (lvl03) in combined DTA
+            date = date_list{t}; % pull current loop's date
+            % Setup Figures for CV Plots
+            CVfig = figure;
+            CVtimefig = figure;
+            markers = {'.-', '.--', '+-', '+--'}; % not in use 2025-07-09
+                % ^ can't figure out how to loop/repeat marker types.
+            %markers = {'o', '+', '*', 's', 'd', '^', 'v', '>', '<', 'p', 'h'};
+            % Continue loop levels:
+            electrode_list = fieldnames(combinedDTA.(wafer).(device).(date)); % list all electrode IDs
+            for u = 1:length(electrode_list) % u = count for electrode IDs
+                electrode = electrode_list{u}; % pull current loop's electrode ID
+                % Create list for legend entry to EISfig later:
+                legend_list{u} = electrode;
+                % Loop through marker type series in plot:
+                num_marker_loops = length(electrode_list)/length(markers);
+                marker_i = 0;
+                for e = 1:num_marker_loops
+                    for f = 1:length(markers)
+                        marker_i = marker_i+1;
+                        marker_index(marker_i) = f;
+                    end
+                end
+                % Continue loop levels:
+                testType_list = fieldnames(combinedDTA.(wafer).(device).(date).(electrode)); % list all test IDs (OCP, EIS, CV)
+                for v = 1:length(testType_list) % v = count for test IDs
+                    testType = testType_list{v}; % pull current loop's test ID
+                    switch testType % use switch case to setup struct format depending on type of measurement (OCP, EIS, or CV)
+                    case 'OCP' % if OCP, do nothing
+                    case 'EIS' % if EIS, do nothing
+                    case 'CV' % if CV, pull raw data for current level in structure
+                        scanrate_list = fieldnames(combinedDTA.(wafer).(device).(date).(electrode).(testType)); % list all scan rates
+                        for w = 1:length(scanrate_list) % w = count for scan rates measured for current wafer/device/date/electrode
+                            scanrate = scanrate_list{w}; % pull current loop iteration's scan rate
+                            scanrate_val = string(str2num(scanrate(3:end))/1000);
+                            
+                            % Pull current dataset:
+                            temp_cv_time = cell2mat(combinedDTA.(wafer).(device).(date).(electrode).(testType).(scanrate).rawdata.time);
+                            temp_cv_v = cell2mat(combinedDTA.(wafer).(device).(date).(electrode).(testType).(scanrate).rawdata.Vf);
+                            temp_cv_i = cell2mat(combinedDTA.(wafer).(device).(date).(electrode).(testType).(scanrate).rawdata.Im);
+                            
+                            %
+                            % Create One Figure Subplot Per Scan Rate...
+
+                            % Figure "CVfig" = Full CV Curves Overlay
+                            figure(CVfig)
+                            subplot(1,length(scanrate_list),w)
+                            hold on
+                            grid on
+                            plot(temp_cv_v,temp_cv_i,'.-','MarkerSize',10,'LineWidth',1);
+                            ylabel('Current, Amps');
+                            xlabel('Potential vs. Ref, Volts');
+                            %xlim([-0.65 0.85])
+                            xlim([(min(temp_cv_v)-0.05) (max(temp_cv_v)+0.05)])
+                            title(sprintf('%s V/s, %s-%s, %s',scanrate_val,wafer,device,string(datetime(date(2:end),'InputFormat','yyyyMMdd','Format','yy-MM-dd'))));
+                            
+                            % Figure "CVtimefig" = V and I Curves vs. Time
+                            figure(CVtimefig)
+                            
+                            %   Current (I) vs Time:
+                            subplot(2,length(scanrate_list),length(scanrate_list)+w)
+                            hold on
+                            grid on
+                            plot(temp_cv_time,temp_cv_i,'.-','MarkerSize',10,'LineWidth',1);
+                            ylabel('Current, Amps');
+                            xlabel('Time, Seconds');
+                            title(sprintf('%s V/s, %s-%s, %s',scanrate_val,wafer,device,string(datetime(date(2:end),'InputFormat','yyyyMMdd','Format','yy-MM-dd'))));
+                            
+                            %   Potential (V) vs Time:
+                            subplot(2,length(scanrate_list),w)
+                            hold on
+                            grid on
+                            plot(temp_cv_time,temp_cv_v,'.-','MarkerSize',10,'LineWidth',1);
+                            ylabel('Potential vs. Ref, Volts');
+                            xlabel('Time, Seconds');
+                            %ylim([-0.65 0.85])
+                            ylim([(min(temp_cv_v)-0.05) (max(temp_cv_v)+0.05)])
+                            title(sprintf('%s V/s, %s-%s, %s',scanrate_val,wafer,device,string(datetime(date(2:end),'InputFormat','yyyyMMdd','Format','yy-MM-dd'))));
+                            
+                            %{
+                            %----- OLD, INITIAL PLOT METHOD, UNUSED -----
+                            if length(scanrate_list)==2 && scanrate_val=="50"
+                                % Pull 50mV/s data:
+                                temp_cv50_time = cell2mat(combinedDTA.(wafer).(device).(date).(electrode).(testType).(scanrate).rawdata.time);
+                                temp_cv50_v = cell2mat(combinedDTA.(wafer).(device).(date).(electrode).(testType).(scanrate).rawdata.Vf);
+                                temp_cv50_i = cell2mat(combinedDTA.(wafer).(device).(date).(electrode).(testType).(scanrate).rawdata.Im);
+                                %
+                                % Add current electrode's data to CVfig:
+                                figure(CVfig)
+                                CV50fig = subplot(1,2,1);
+                                hold on
+                                grid on
+                                plot(temp_cv50_v,temp_cv50_i,'.-','MarkerSize',10,'LineWidth',1);
+                                ylabel('Current, Amps');
+                                xlabel('Potential vs. Ag|AgCl Reference, Volts');
+                                xlim([-0.65 0.85])
+                                title(sprintf('0.05 V/s, Wafer %s, Device %s, %s',wafer,device,string(datetime(date(2:end),'InputFormat','yyyyMMdd','Format','yyyy-MMM-dd'))));
+                                % Add current electrode's data to CVtimefig:
+                                figure(CVtimefig)
+                                subplot(2,2,1)
+                                hold on
+                                grid on
+                                plot(temp_cv50_time,temp_cv50_v,'.-','MarkerSize',10,'LineWidth',1);
+                                ylabel('Potential vs. Ref, Volts');
+                                xlabel('Time, Seconds');
+                                ylim([-0.65 0.85])
+                                title(sprintf('0.05 V/s, Wafer %s, Device %s, %s',wafer,device,string(datetime(date(2:end),'InputFormat','yyyyMMdd','Format','yyyy-MMM-dd'))));
+                                % Add current electrode's data to CVtimefig:
+                                figure(CVtimefig)
+                                subplot(2,2,3)
+                                hold on
+                                grid on
+                                plot(temp_cv50_time,temp_cv50_i,'.-','MarkerSize',10,'LineWidth',1);
+                                ylabel('Current, Amps');
+                                xlabel('Time, Seconds');
+                                title(sprintf('0.05 V/s, Wafer %s, Device %s, %s',wafer,device,string(datetime(date(2:end),'InputFormat','yyyyMMdd','Format','yyyy-MMM-dd'))));
+                            elseif length(scanrate_list)==2 && scanrate_val=="50000"
+                                % Pull 50000mV/s data:
+                                temp_cv50000_time = cell2mat(combinedDTA.(wafer).(device).(date).(electrode).(testType).(scanrate).rawdata.time);
+                                temp_cv50000_v = cell2mat(combinedDTA.(wafer).(device).(date).(electrode).(testType).(scanrate).rawdata.Vf);
+                                temp_cv50000_i = cell2mat(combinedDTA.(wafer).(device).(date).(electrode).(testType).(scanrate).rawdata.Im);
+                                %
+                                % Add current electrode's data to CVfig:
+                                figure(CVfig)
+                                CV50kfig = subplot(1,2,2);
+                                hold on
+                                grid on
+                                plot(temp_cv50000_v,temp_cv50000_i,'.-','MarkerSize',10,'LineWidth',1);
+                                ylabel('Current, Amps');
+                                xlabel('Potential vs. Ag|AgCl Reference, Volts');
+                                xlim([-0.65 0.85])
+                                title(sprintf('50 V/s, Wafer %s, Device %s, %s',wafer,device,string(datetime(date(2:end),'InputFormat','yyyyMMdd','Format','yyyy-MMM-dd'))));
+                                % Add current electrode's data to CVtimefig:
+                                figure(CVtimefig)
+                                subplot(2,2,4)
+                                hold on
+                                grid on
+                                plot(temp_cv50000_time,temp_cv50000_i,'.-','MarkerSize',10,'LineWidth',1);
+                                ylabel('Current, Amps');
+                                xlabel('Time, Seconds');
+                                title(sprintf('50 V/s, Wafer %s, Device %s, %s',wafer,device,string(datetime(date(2:end),'InputFormat','yyyyMMdd','Format','yyyy-MMM-dd'))));
+                                % Add current electrode's data to CVtimefig:
+                                figure(CVtimefig)
+                                subplot(2,2,2)
+                                hold on
+                                grid on
+                                plot(temp_cv50000_time,temp_cv50000_v,'.-','MarkerSize',10,'LineWidth',1);
+                                ylabel('Potential vs. Ref, Volts');
+                                xlabel('Time, Seconds');
+                                ylim([-0.65 0.85])
+                                title(sprintf('50 V/s, Wafer %s, Device %s, %s',wafer,device,string(datetime(date(2:end),'InputFormat','yyyyMMdd','Format','yyyy-MMM-dd'))));
+                            else
+                                warning(sprintf('Skipping Scan Rate %s mV/s. No plot function defined.',scanrate_val))
+                            end
+                            %----- OLD, INITIAL PLOT METHOD, UNUSED -----
+                            %}
+                        %
+                        end  % end for w, loop through scanrate
+                        %
+                    end  % end of switch case
+                end  % end for v, loop through testType
+            end  % end for u, loop through electrode
+            % Add legend entries to CVfig and CVtimefig figures:
+            %{
+            figure(CVfig)
+            legend(CV50fig)
+            CV50figleg = legend(legend_list,'Location','southeast','Orientation','horizontal','NumColumns',4);
+            CV50figleg.ItemTokenSize(1) = 10;
+            % ^ CV50fig subplot legend not working, unsure why 2025-07-09
+            %}
+            %
+            figure(CVfig)
+            CVfigleg = legend(legend_list,'Location','southeast','Orientation','horizontal','NumColumns',4);
+            CVfigleg.ItemTokenSize(1) = 10;
+            %
+            figure(CVtimefig)
+            CVtimeleg = legend(legend_list,'Location','north','Orientation','horizontal','NumColumns',4);
+            CVtimeleg.ItemTokenSize(1) = 10;
+        end  % end for t, loop through date
+    end  % end for s, loop through device
+end  % end for r, loop through wafer
+hold off
+% (note: may need to move save within date loop to account for cases with
+%   data from multiple dates within the same folder.)
+saveas(CVfig,fullfile(summarieslocation,'summaryCVfig.png'))
+saveas(CVtimefig,fullfile(summarieslocation,'summaryCVtimefig.png'))
+
+
 % ------------------------------------------------------------------------
 %                             END OF FILE
 % ------------------------------------------------------------------------

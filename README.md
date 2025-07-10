@@ -1,5 +1,5 @@
-# EchemAnalysis_MATLAB
-Code base for processing and analysis of electrochemical measurement data using MATLAB. <br/>
+# NeuroEchemAnalysis_Gamry_MATLAB
+Code base for processing and analysis of electrochemical measurement data for neural interface devices using MATLAB. <br/>
 For use with Gamry potentiostats and Gamry Framework software (.dta file types). <br/>
 Last Updated: 2025-JUL-10 by Rebecca Frederick
 

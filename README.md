@@ -7,6 +7,8 @@ Last Updated: 2025-JUL-10 by Rebecca Frederick
 **********************************************************************************************************
 ## FILE DESCRIPTIONS
 
+### MATLAB Version: R2025a
+
 ### Main File: "main_DTA_batch_process.m"
 - Reads all Gamry .dta files within a folder. 
 - Runs "DTA_read" function to create & save an organized MATLAB data structure for each .dta file. 
